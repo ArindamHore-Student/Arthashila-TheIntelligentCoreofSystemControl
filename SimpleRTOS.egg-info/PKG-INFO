@@ -1,0 +1,76 @@
+Metadata-Version: 2.4
+Name: SimpleRTOS
+Version: 1.0.0
+Summary: A comprehensive system monitoring and task management application
+Home-page: https://github.com/yourusername/SimpleRTOS
+Author: Your Name
+Author-email: your.email@example.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+Requires-Dist: streamlit>=1.24.0
+Requires-Dist: streamlit-option-menu>=0.3.2
+Requires-Dist: psutil>=5.9.0
+Requires-Dist: plotly>=5.13.0
+Requires-Dist: tabulate>=0.9.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
+# SimpleRTOS - Enhanced Task Manager
+
+A comprehensive system monitoring and task management application built with Streamlit.
+
+## Features
+
+- System Overview
+- Process Management
+- Real-time Performance Monitoring
+- Battery Management
+- Task Planning
+- Team Collaboration Tools
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/SimpleRTOS.git
+cd SimpleRTOS
+```
+
+2. Install the package in development mode:
+```bash
+pip install -e .
+```
+
+Or install dependencies directly:
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+Run the application:
+```bash
+streamlit run main.py
+```
+
+## Requirements
+
+- Python 3.7+
+- Streamlit 1.24.0+
+- psutil 5.9.0+
+- plotly 5.13.0+
+- Other dependencies as listed in requirements.txt
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details. 

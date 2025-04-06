@@ -1,0 +1,17 @@
+README.md
+setup.py
+SimpleRTOS.egg-info/PKG-INFO
+SimpleRTOS.egg-info/SOURCES.txt
+SimpleRTOS.egg-info/dependency_links.txt
+SimpleRTOS.egg-info/requires.txt
+SimpleRTOS.egg-info/top_level.txt
+features/__init__.py
+features/battery_management.py
+features/collaboration_tools.py
+features/performance_graphs.py
+features/process_manager.py
+features/system_overview.py
+features/task_planning.py
+utils/__init__.py
+utils/helpers.py
+utils/visualization.py
