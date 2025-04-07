@@ -234,60 +234,79 @@ def check_for_anomalies():
     Returns:
         bool: True if anomaly detected, False otherwise
     """
-    # Prepare data for anomaly detection
-    cpu_values = np.array([v for _, v in st.session_state.ai_cpu_data]).reshape(-1, 1)
-    memory_values = np.array([v for _, v in st.session_state.ai_memory_data]).reshape(-1, 1)
-    disk_values = np.array([v for _, v in st.session_state.ai_disk_data]).reshape(-1, 1)
-    network_values = np.array([v for _, v in st.session_state.ai_network_data]).reshape(-1, 1)
-    
-    # Combine features for more robust detection
-    features = np.hstack((cpu_values, memory_values, disk_values, network_values))
-    
-    # Standardize the data
-    scaler = StandardScaler()
-    features_scaled = scaler.fit_transform(features)
-    
-    # Train the model if not already trained
-    if not st.session_state.anomaly_model_trained and len(st.session_state.ai_cpu_data) >= MAX_DATA_POINTS // 2:
-        st.session_state.anomaly_model.fit(features_scaled)
-        st.session_state.anomaly_model_trained = True
-    
-    # Detect anomalies if model is trained
-    if st.session_state.anomaly_model_trained:
-        # Predict anomaly scores (-1 for anomalies, 1 for normal data)
-        scores = st.session_state.anomaly_model.decision_function(features_scaled)
+    try:
+        # Prepare data for anomaly detection
+        cpu_values = np.array([v for _, v in st.session_state.ai_cpu_data]).reshape(-1, 1)
+        memory_values = np.array([v for _, v in st.session_state.ai_memory_data]).reshape(-1, 1)
+        disk_values = np.array([v for _, v in st.session_state.ai_disk_data]).reshape(-1, 1)
+        network_values = np.array([v for _, v in st.session_state.ai_network_data]).reshape(-1, 1)
         
-        # Check if the latest data point is anomalous
-        if scores[-1] < ANOMALY_THRESHOLD:
-            # Add to security log
-            log_entry = {
-                "timestamp": time.time(),
-                "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "event_type": "ANOMALY_DETECTED",
-                "metrics": {
-                    "cpu": cpu_values[-1][0],
-                    "memory": memory_values[-1][0],
-                    "disk": disk_values[-1][0],
-                    "network": network_values[-1][0]
-                },
-                "anomaly_score": scores[-1]
-            }
-            log_entry["integrity_hash"] = hashlib.sha256(json.dumps(log_entry, sort_keys=True).encode()).hexdigest()
-            st.session_state.ai_security_logs.append(log_entry)
+        # We need to ensure the model is trained on the same number of features it will predict on
+        # Create a new model if the model was trained with a different number of features
+        if st.session_state.anomaly_model_trained:
+            try:
+                # Try to use the existing model - this will fail if feature count doesn't match
+                features = np.hstack((cpu_values[-1:], memory_values[-1:]))  # Just check with two features as a test
+                scaler = StandardScaler()
+                features_scaled = scaler.fit_transform(features)
+                st.session_state.anomaly_model.decision_function(features_scaled)
+            except ValueError:
+                # If error occurs, recreate the model
+                logger.info("Recreating anomaly model to handle different feature count")
+                st.session_state.anomaly_model = IsolationForest(contamination=0.05, n_estimators=100, random_state=42)
+                st.session_state.anomaly_model_trained = False
+        
+        # Use only CPU and memory for anomaly detection (2 features) to keep it simple and reliable
+        features = np.hstack((cpu_values, memory_values))
+        
+        # Standardize the data
+        scaler = StandardScaler()
+        features_scaled = scaler.fit_transform(features)
+        
+        # Train the model if not already trained
+        if not st.session_state.anomaly_model_trained and len(st.session_state.ai_cpu_data) >= MAX_DATA_POINTS // 2:
+            st.session_state.anomaly_model.fit(features_scaled)
+            st.session_state.anomaly_model_trained = True
+        
+        # Detect anomalies if model is trained
+        if st.session_state.anomaly_model_trained:
+            # Predict anomaly scores (-1 for anomalies, 1 for normal data)
+            scores = st.session_state.anomaly_model.decision_function(features_scaled)
             
-            # Add insight
-            insight = {
-                "type": "anomaly",
-                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "message": "System behavior anomaly detected",
-                "details": f"Unusual patterns in system metrics (anomaly score: {scores[-1]:.4f})",
-                "severity": "high" if scores[-1] < -0.6 else "medium"
-            }
-            st.session_state.ai_insights.append(insight)
-            
-            return True
-    
-    return False
+            # Check if the latest data point is anomalous
+            if scores[-1] < ANOMALY_THRESHOLD:
+                # Add to security log
+                log_entry = {
+                    "timestamp": time.time(),
+                    "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "event_type": "ANOMALY_DETECTED",
+                    "metrics": {
+                        "cpu": cpu_values[-1][0],
+                        "memory": memory_values[-1][0],
+                        "disk": disk_values[-1][0],
+                        "network": network_values[-1][0]
+                    },
+                    "anomaly_score": scores[-1]
+                }
+                log_entry["integrity_hash"] = hashlib.sha256(json.dumps(log_entry, sort_keys=True).encode()).hexdigest()
+                st.session_state.ai_security_logs.append(log_entry)
+                
+                # Add insight
+                insight = {
+                    "type": "anomaly",
+                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "message": "System behavior anomaly detected",
+                    "details": f"Unusual patterns in system metrics (anomaly score: {scores[-1]:.4f})",
+                    "severity": "high" if scores[-1] < -0.6 else "medium"
+                }
+                st.session_state.ai_insights.append(insight)
+                
+                return True
+        
+        return False
+    except Exception as e:
+        logger.error(f"Error in anomaly detection: {str(e)}")
+        return False
 
 def predict_resource_usage(steps=10):
     """
