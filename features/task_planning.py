@@ -1,3 +1,14 @@
+"""
+Task Planning Module for Arthashila
+
+This module provides project and task management capabilities.
+It allows users to create, track, and manage tasks with priorities,
+due dates, and statuses to improve productivity and organization.
+
+Features include task dashboard, task analytics, and customizable
+task categories and priorities to fit various workflow needs.
+"""
+
 import streamlit as st # type: ignore
 from datetime import datetime, date, timedelta
 import sys
@@ -11,7 +22,7 @@ import plotly.graph_objects as go
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.helpers import format_priority
+from utils import format_priority
 
 # Task statuses with colors
 TASK_STATUSES = {

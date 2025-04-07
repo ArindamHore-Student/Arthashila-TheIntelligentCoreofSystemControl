@@ -1,6 +1,6 @@
-# SimpleRTOS User Guide
+# Arthashila User Guide
 
-This guide will help you navigate and use the SimpleRTOS application effectively.
+This guide will help you navigate and use the Arthashila application effectively.
 
 ## Table of Contents
 - [Getting Started](#getting-started)
@@ -8,6 +8,7 @@ This guide will help you navigate and use the SimpleRTOS application effectively
 - [System Overview](#system-overview)
 - [Process Manager](#process-manager)
 - [Performance Graphs](#performance-graphs)
+- [AI Analytics](#ai-analytics)
 - [Battery & Power](#battery--power)
 - [Task Planning](#task-planning)
 - [Collaboration](#collaboration)
@@ -19,7 +20,7 @@ This guide will help you navigate and use the SimpleRTOS application effectively
 ### Installation
 
 1. Make sure you have Python 3.7 or higher installed on your system
-2. Install SimpleRTOS:
+2. Install Arthashila:
    ```bash
    pip install -r requirements.txt
    ```
@@ -30,7 +31,7 @@ This guide will help you navigate and use the SimpleRTOS application effectively
 
 ### First Launch
 
-When you first launch SimpleRTOS, you'll see the main interface with:
+When you first launch Arthashila, you'll see the main interface with:
 - A navigation sidebar on the left
 - The main content area on the right, starting with the System Overview
 - Real-time system status metrics in the sidebar
@@ -38,7 +39,7 @@ When you first launch SimpleRTOS, you'll see the main interface with:
 ## Navigation
 
 The sidebar contains:
-- **SimpleRTOS Logo and Name**: At the top of the sidebar
+- **Arthashila Logo and Name**: At the top of the sidebar
 - **Navigation Menu**: Click on any option to switch to that feature
 - **System Status**: Quick view of CPU, memory, and disk usage
 - **Footer**: Version information and copyright
@@ -103,6 +104,24 @@ The Performance Graphs section provides visual representations of system perform
 - **Memory Usage**: RAM and swap memory usage
 - **Disk I/O**: Disk read/write operations
 - **Network**: Network traffic in/out
+
+### Chart Options
+- **Time Range**: Select the time period to display (1 minute to 1 hour)
+- **Chart Type**: Choose between line charts and bar charts
+- **Refresh Rate**: How often the charts update (5s to 60s)
+
+### Interactivity
+- Hover over chart points to see exact values
+- Zoom in/out using the chart controls
+- Download charts as PNG images
+
+## AI Analytics
+
+The AI Analytics section provides insights into system performance and behavior:
+
+### Available Metrics
+- **AI Usage**: Historical AI usage over time
+- **AI Efficiency**: AI performance metrics
 
 ### Chart Options
 - **Time Range**: Select the time period to display (1 minute to 1 hour)
@@ -191,7 +210,7 @@ The Collaboration section facilitates teamwork:
 #### High Resource Usage
 - Close the Performance Graphs tab when not needed
 - Reduce the refresh rate of monitoring features
-- Close unnecessary browser tabs while using SimpleRTOS
+- Close unnecessary browser tabs while using Arthashila
 
 #### Tasks Not Saving
 - Ensure you have write permissions to the application directory
@@ -204,7 +223,7 @@ The Collaboration section facilitates teamwork:
 
 ## Keyboard Shortcuts
 
-SimpleRTOS supports several keyboard shortcuts to improve your productivity:
+Arthashila supports several keyboard shortcuts to improve your productivity:
 
 - **R**: Refresh current view
 - **Ctrl+N**: Create new task (in Task Planning)
@@ -215,4 +234,4 @@ SimpleRTOS supports several keyboard shortcuts to improve your productivity:
 
 ---
 
-We hope this guide helps you make the most of SimpleRTOS. For developer documentation, please refer to the DEVELOPERS.md file. 
+We hope this guide helps you make the most of Arthashila. For developer documentation, please refer to the DEVELOPERS.md file. 

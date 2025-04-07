@@ -1,12 +1,12 @@
 """
-SimpleRTOS - Real-Time Operating System Monitor
+Arthashila - System Monitor
 
 This application provides a comprehensive system monitoring and task management interface
 built with Streamlit. It allows users to monitor system resources, manage processes,
-track performance metrics, manage battery usage, plan tasks, and collaborate with team members.
+track performance metrics, leverage AI-powered analytics, manage battery usage, and plan tasks.
 
-Author: SimpleRTOS Team
-Version: 1.0
+Author: Arthashila Team
+Version: 1.2
 License: MIT
 """
 
@@ -15,6 +15,8 @@ from streamlit_option_menu import option_menu
 import streamlit.components.v1 as components
 import sys
 import os
+import psutil
+import time
 
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -23,9 +25,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from features.system_overview import system_overview
 from features.process_manager import process_manager
 from features.performance_graphs import performance_graphs
+from features.ai_analytics import ai_analytics
 from features.battery_management import battery_management
 from features.task_planning import task_planning
-from features.collaboration_tools import collaboration_tools
 
 def load_custom_css():
     """
@@ -162,6 +164,22 @@ def load_custom_css():
             margin-bottom: 16px;
             border: 1px solid #2d3747;
         }
+        
+        /* Real-time indicators */
+        .real-time-badge {
+            background-color: #0cce6b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -172,157 +190,154 @@ def render_sidebar():
     Returns:
         str: The selected navigation option
     """
+    # Check if we need to set the selected option from session state
+    default_index = 0
+    options = [
+        "System Overview", 
+        "Process Manager", 
+        "Performance Graphs",
+        "AI Analytics",
+        "Battery & Power", 
+        "Task Planning"
+    ]
+    
+    # If navigate_to is in session state, find its index
+    if 'navigate_to' in st.session_state:
+        try:
+            default_index = options.index(st.session_state.navigate_to)
+            # Clear it after use
+            del st.session_state.navigate_to
+        except ValueError:
+            default_index = 0
+    
     with st.sidebar:
         # Logo and app name 
-        st.markdown('<div class="logo-text">⚙️ SimpleRTOS</div>', unsafe_allow_html=True)
-        st.markdown("#### Real-Time Operating System Monitor")
+        st.markdown('<div class="logo-text">⚙️ Arthashila</div>', unsafe_allow_html=True)
+        st.markdown("#### System Monitor")
         
         # Navigation menu
         selected = option_menu(
             menu_title="Navigation",
-            options=[
-                "System Overview", 
-                "Process Manager", 
-                "Performance Graphs", 
-                "Battery & Power", 
-                "Task Planning", 
-                "Collaboration"
-            ],
+            options=options,
             icons=[
                 "cpu", 
                 "list-task", 
-                "graph-up", 
+                "graph-up",
+                "robot",
                 "battery-charging", 
-                "calendar-check", 
-                "people"
+                "calendar-check"
             ],
             menu_icon="menu-button-wide",
-            default_index=0,
+            default_index=default_index,
             styles={
                 "container": {"padding": "5px", "background-color": "#1a1f2c"},
-                "icon": {"color": "#4f8bf9", "font-size": "16px"},
+                "icon": {"color": "#4f8bf9", "font-size": "14px"},
                 "nav-link": {
                     "font-size": "14px",
                     "text-align": "left",
                     "margin": "0px",
-                    "--hover-color": "#2d3747"
+                    "--hover-color": "#2d3747",
                 },
                 "nav-link-selected": {"background-color": "#4f8bf9"},
             },
         )
         
-        st.markdown("---")
-        render_system_status()
+        # System stats in sidebar
+        st.markdown("#### System Status")
         
-    return selected
-
-def render_system_status():
-    """
-    Display real-time system status metrics in the sidebar.
-    Shows CPU, memory, and disk usage with appropriate color coding.
-    """
-    import psutil
-    
-    st.markdown("### System Status")
-    
-    # Get current system metrics
-    cpu_percent = psutil.cpu_percent()
-    memory = psutil.virtual_memory()
-    disk = psutil.disk_usage('/')
-    
-    # Helper function to determine color based on usage percentage
-    def get_usage_color(percent):
-        if percent > 80:
-            return 'red'
-        elif percent > 50:
-            return 'orange'
-        else:
-            return '#4f8bf9'
-    
-    # CPU status with icon
-    cpu_color = get_usage_color(cpu_percent)
-    st.markdown(
-        f"<div style='display: flex; align-items: center;'>"
-        f"<div>🔄 CPU Usage</div>"
-        f"<div style='margin-left: auto; font-weight: bold; color: {cpu_color};'>{cpu_percent}%</div>"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
-    st.progress(cpu_percent / 100)
-    
-    # Memory status with icon
-    memory_color = get_usage_color(memory.percent)
-    st.markdown(
-        f"<div style='display: flex; align-items: center;'>"
-        f"<div>🧠 Memory Usage</div>"
-        f"<div style='margin-left: auto; font-weight: bold; color: {memory_color};'>{memory.percent}%</div>"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
-    st.progress(memory.percent / 100)
-    
-    # Disk usage with icon
-    disk_color = get_usage_color(disk.percent)
-    st.markdown(
-        f"<div style='display: flex; align-items: center;'>"
-        f"<div>💽 Disk Usage</div>"
-        f"<div style='margin-left: auto; font-weight: bold; color: {disk_color};'>{disk.percent}%</div>"
-        f"</div>", 
-        unsafe_allow_html=True
-    )
-    st.progress(disk.percent / 100)
-
-def render_footer():
-    """
-    Render the application footer with version information and copyright.
-    """
-    st.markdown("---")
-    st.markdown(
-        """
-        <div style='text-align: center; color: #888888; font-size: 12px;'>
-            <p>SimpleRTOS v1.0 | Built with ❤️ using Streamlit</p>
-            <p>© 2023 SimpleRTOS</p>
+        # Current CPU and memory usage
+        cpu_usage = psutil.cpu_percent(interval=0.1)
+        memory_usage = psutil.virtual_memory().percent
+        
+        # Show current time
+        st.markdown(f"**Time**: {time.strftime('%H:%M:%S')}")
+        
+        # Display system metrics in sidebar
+        cpu_color = "#0cce6b" if cpu_usage < 50 else "#f9a825" if cpu_usage < 80 else "#ff4b4b"
+        memory_color = "#0cce6b" if memory_usage < 50 else "#f9a825" if memory_usage < 80 else "#ff4b4b"
+        
+        st.markdown(f"""
+        <div style="margin: 10px 0;">
+            <div style="font-size: 0.8em; color: #a0a0a0;">CPU Usage</div>
+            <div style="display: flex; align-items: center;">
+                <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
+                    <div style="width: {cpu_usage}%; background-color: {cpu_color}; height: 8px; border-radius: 4px;"></div>
+                </div>
+                <div style="font-weight: bold; color: {cpu_color};">{cpu_usage}%</div>
+            </div>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+        
+        <div style="margin: 10px 0;">
+            <div style="font-size: 0.8em; color: #a0a0a0;">Memory Usage</div>
+            <div style="display: flex; align-items: center;">
+                <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
+                    <div style="width: {memory_usage}%; background-color: {memory_color}; height: 8px; border-radius: 4px;"></div>
+                </div>
+                <div style="font-weight: bold; color: {memory_color};">{memory_usage}%</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Add battery indicator if available
+        if hasattr(psutil, "sensors_battery"):
+            battery = psutil.sensors_battery()
+            if battery:
+                percent = battery.percent
+                charging = battery.power_plugged
+                
+                battery_color = "#0cce6b" if percent > 50 else "#f9a825" if percent > 20 else "#ff4b4b"
+                charging_indicator = "⚡" if charging else ""
+                
+                st.markdown(f"""
+                <div style="margin: 10px 0;">
+                    <div style="font-size: 0.8em; color: #a0a0a0;">Battery</div>
+                    <div style="display: flex; align-items: center;">
+                        <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
+                            <div style="width: {percent}%; background-color: {battery_color}; height: 8px; border-radius: 4px;"></div>
+                        </div>
+                        <div style="font-weight: bold; color: {battery_color};">{percent}% {charging_indicator}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Footer
+        st.markdown("---")
+        st.markdown(
+            "Developed with ❤️ by Arthashila Team",
+            unsafe_allow_html=True
+        )
+        
+        return selected
 
 def main():
-    """
-    Main application entry point.
-    Sets up the page configuration, loads CSS, renders the sidebar,
-    and routes to the appropriate feature module based on navigation selection.
-    """
-    # Configure the Streamlit page
+    """Main entry point for the application"""
+    # Set page config
     st.set_page_config(
-        page_title="SimpleRTOS",
+        page_title="Arthashila System Monitor",
         page_icon="⚙️",
         layout="wide",
-        initial_sidebar_state="expanded"
+        initial_sidebar_state="expanded",
     )
     
-    # Load custom CSS for styling
+    # Load custom CSS
     load_custom_css()
     
     # Render sidebar and get selected option
-    selected_option = render_sidebar()
+    selection = render_sidebar()
     
-    # Route to the appropriate module based on selection
-    if selected_option == "System Overview":
+    # Display appropriate page based on selection
+    if selection == "System Overview":
         system_overview()
-    elif selected_option == "Process Manager":
+    elif selection == "Process Manager":
         process_manager()
-    elif selected_option == "Performance Graphs":
+    elif selection == "Performance Graphs":
         performance_graphs()
-    elif selected_option == "Battery & Power":
+    elif selection == "AI Analytics":
+        ai_analytics()
+    elif selection == "Battery & Power":
         battery_management()
-    elif selected_option == "Task Planning":
+    elif selection == "Task Planning":
         task_planning()
-    elif selected_option == "Collaboration":
-        collaboration_tools()
-    
-    # Render application footer
-    render_footer()
 
 if __name__ == "__main__":
     main()

@@ -1,3 +1,12 @@
+"""
+System Overview Module for Arthashila
+
+This module provides a comprehensive overview of system hardware and software.
+It displays real-time information about CPU, memory, disk usage, and other system metrics.
+
+Enhanced with visual representations and links to AI Analytics features.
+"""
+
 import streamlit as st
 import platform
 import psutil
@@ -10,10 +19,20 @@ from datetime import datetime
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.helpers import get_size
+from utils import get_size
 
 def create_gauge_chart(value, title, max_value=100):
-    """Create a gauge chart for displaying values like CPU usage."""
+    """
+    Create a gauge chart for displaying values like CPU usage.
+    
+    Args:
+        value (float): The value to display on the gauge
+        title (str): The title of the gauge chart
+        max_value (int, optional): The maximum value of the gauge. Defaults to 100.
+        
+    Returns:
+        plotly.graph_objects.Figure: A configured gauge chart
+    """
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=value,
@@ -42,6 +61,17 @@ def create_gauge_chart(value, title, max_value=100):
     return fig
 
 def system_overview():
+    """
+    Main entry point for the system overview feature.
+    
+    This function displays:
+    1. Real-time system metrics (CPU, memory, disk usage)
+    2. Detailed hardware and software information
+    3. CPU usage details per core
+    4. Memory usage breakdown
+    5. Disk usage statistics
+    6. Integration with AI Analytics for advanced insights
+    """
     st.title("🖥️ System Overview")
     st.markdown("View detailed information about your system hardware and software")
     
@@ -77,6 +107,19 @@ def system_overview():
             <div style="font-size: 2.5rem; text-align: center; font-weight: bold;">{}%</div>
         </div>
         """.format(disk.percent), unsafe_allow_html=True)
+    
+    # AI Analytics Integration
+    st.markdown("""
+    <div style="background-color: #1a1f2c; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #2d3747;">
+        <h3 style="color: #4f8bf9;">🧠 AI-Powered Insights Available</h3>
+        <p>For advanced analytics, anomaly detection, and predictive insights, check out:</p>
+        <ul>
+            <li><strong>Performance Graphs</strong>: AI-enhanced monitoring with anomaly detection</li>
+            <li><strong>AI Analytics</strong>: Deep system insights with the X-Factor Process Optimizer</li>
+        </ul>
+        <p style="font-size: 0.9em; color: #888888;">Select these options from the navigation menu for AI-powered analysis.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Gauge charts for visual representation
     col1, col2 = st.columns(2)
@@ -203,7 +246,7 @@ def system_overview():
             
             for prop, value in swap_info:
                 st.markdown(f"**{prop}:** {value}")
-                
+            
             # Swap Usage Breakdown
             swap_fig = go.Figure()
             swap_fig.add_trace(go.Pie(
@@ -220,28 +263,47 @@ def system_overview():
                 height=300
             )
             st.plotly_chart(swap_fig, use_container_width=True)
-    
+            
     # Disk Information
     with st.expander("💽 Disk Information", expanded=True):
-        st.markdown("#### Disk Partitions")
+        st.markdown("#### Disk Usage")
+        disk_partitions = psutil.disk_partitions()
         
-        partitions = psutil.disk_partitions()
-        for i, partition in enumerate(partitions):
+        for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 
-                st.markdown(f"**Partition {i+1}: {partition.mountpoint}**")
-                st.markdown(f"**Device:** {partition.device}")
-                st.markdown(f"**File System:** {partition.fstype}")
+                st.markdown(f"**Device: {partition.device}**")
+                st.markdown(f"**Mountpoint: {partition.mountpoint}**")
+                st.markdown(f"**File System Type: {partition.fstype}**")
                 
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Total Size", get_size(partition_usage.total))
-                col2.metric("Used", get_size(partition_usage.used))
-                col3.metric("Free", get_size(partition_usage.free))
+                
+                with col1:
+                    st.metric(
+                        "Total Size", 
+                        get_size(partition_usage.total)
+                    )
+                
+                with col2:
+                    st.metric(
+                        "Used", 
+                        get_size(partition_usage.used)
+                    )
+                
+                with col3:
+                    st.metric(
+                        "Free", 
+                        get_size(partition_usage.free)
+                    )
                 
                 st.progress(partition_usage.percent / 100)
-                st.markdown(f"<div style='text-align: right;'>{partition_usage.percent}% used</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: center;'>{partition_usage.percent}% Used</div>", unsafe_allow_html=True)
                 st.markdown("---")
             except:
-                st.markdown(f"**Partition {i+1}: {partition.mountpoint}** (Access Denied)")
+                # Some partitions may not be accessible
+                st.markdown(f"**Device: {partition.device}**")
+                st.markdown(f"**Mountpoint: {partition.mountpoint}**")
+                st.markdown(f"**File System Type: {partition.fstype}**")
+                st.markdown("❌ Partition is not accessible or is a special system partition")
                 st.markdown("---")

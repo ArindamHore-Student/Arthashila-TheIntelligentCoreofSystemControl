@@ -1,153 +1,132 @@
-# SimpleRTOS
+# Arthashila - System Monitor
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Python-3.7+-blue.svg" alt="Python 3.7+">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License: MIT">
-  <img src="https://img.shields.io/badge/Streamlit-1.24.0+-red.svg" alt="Streamlit 1.24.0+">
-</div>
+A comprehensive system monitoring and task management application built with Streamlit. Arthashila provides real-time system metrics, process management, performance analytics, and task planning capabilities.
 
-## 🔍 Overview
+![Arthashila Logo](https://img.shields.io/badge/Arthashila-System%20Monitor-blue)
+![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-SimpleRTOS is a comprehensive system monitoring and task management application built with Streamlit. It provides real-time insights into system resources, process management, performance metrics, and battery usage, along with productivity features like task planning and team collaboration tools.
+## Features
 
-![SimpleRTOS Screenshot](https://i.imgur.com/placeholder.png) <!-- Replace with actual screenshot URL -->
+### 🖥️ System Overview
+- Real-time CPU, memory, and disk usage monitoring
+- Detailed hardware and software information
+- Interactive gauge charts for system metrics
+- AI-powered insights integration
 
-## ✨ Features
+### 🔄 Process Manager
+- Real-time process monitoring and management
+- Process filtering and sorting capabilities
+- Resource usage tracking
+- Process optimization suggestions
 
-### 📊 System Overview
-- Real-time monitoring of CPU, memory, and disk usage
-- Detailed system information display including OS, processor, and memory specifications
-- Clean visualization of system metrics using modern UI components
+### 📊 Performance Graphs
+- Real-time CPU and memory usage graphs
+- AI-powered anomaly detection
+- Predictive analytics for resource usage
+- Customizable refresh rates
 
-### 🔄 Process Management
-- View and manage running processes
-- Terminate unresponsive applications
-- Monitor process resource consumption
-- Process priority management
+### 🤖 AI Analytics
+- Intelligent process optimization
+- Anomaly detection and alerts
+- Performance trend analysis
+- Resource usage forecasting
 
-### 📈 Performance Graphs
-- Historical tracking of system resource usage
-- Interactive charts for CPU, memory, and disk metrics
-- Timeline visualization for system performance analysis
-
-### 🔋 Battery Management
-- Real-time battery status monitoring
-- Remaining time estimation
-- Power-saving tips and recommendations
-- Battery usage statistics
+### 🔋 Battery & Power
+- Battery status monitoring
+- Power management tips
+- Energy usage optimization
+- Battery health information
 
 ### 📝 Task Planning
-- Create, manage, and prioritize tasks
-- Set due dates and task categories
-- Progress tracking and completion status
-- Task filtering and organization
+- Task creation and management
+- Priority-based task organization
+- Progress tracking
+- Task analytics and visualization
 
-### 👥 Team Collaboration Tools
-- Messaging and communication features
-- Shared task management
-- Team coordination tools
-- Activity tracking and updates
-
-## 🔧 Installation
-
-### Prerequisites
-- Python 3.7 or higher
-- pip (Python package installer)
-
-### Option 1: Install from Source
+## Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/ArindamHore-Student/SimpleRTOS.git
-cd SimpleRTOS
+git clone https://github.com/yourusername/arthashila.git
+cd arthashila
 ```
 
-2. Install the package in development mode:
+2. Create a virtual environment (recommended):
 ```bash
-pip install -e .
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
-### Option 2: Install Dependencies Directly
-
-Install the required packages:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-## 🚀 Usage
+## Usage
 
-Start the application:
+1. Start the application:
 ```bash
-streamlit run main.py
+python -m streamlit run main.py
 ```
 
-The application will launch in your default web browser, typically at http://localhost:8501.
-
-## 📁 Project Structure
-
+2. Open your web browser and navigate to:
 ```
-SimpleRTOS/
-├── main.py                 # Main application entry point
-├── requirements.txt        # Project dependencies
-├── setup.py                # Package installation configuration
-├── README.md               # Project documentation
-├── features/               # Feature modules
-│   ├── __init__.py         # Package initialization
-│   ├── system_overview.py  # System monitoring functionality
-│   ├── process_manager.py  # Process management tools
-│   ├── performance_graphs.py  # Performance visualization
-│   ├── battery_management.py  # Battery monitoring tools
-│   ├── task_planning.py    # Task planning functionality
-│   └── collaboration_tools.py  # Team collaboration features
-└── utils/                  # Utility functions and helpers
-    ├── __init__.py         # Package initialization
-    ├── helpers.py          # Helper functions
-    └── visualization.py    # Visualization utilities
+http://localhost:8501
 ```
 
-## 🧩 Architecture
+## Requirements
 
-SimpleRTOS follows a modular architecture where each feature is implemented as a separate module within the `features` package. The main application (`main.py`) provides the UI framework and navigation, while the individual feature modules implement specific functionality.
+- Python 3.8 or higher
+- Streamlit
+- psutil
+- plotly
+- pandas
+- numpy
+- scikit-learn
+- scipy
+- matplotlib
 
-Key components:
-- **Main App**: Handles navigation, styling, and routing to feature modules
-- **Feature Modules**: Self-contained implementations of specific features
-- **Utils**: Shared utility functions used across multiple features
+## Project Structure
 
-## 🤝 Contributing
+```
+arthashila/
+├── features/
+│   ├── system_overview.py
+│   ├── process_manager.py
+│   ├── performance_graphs.py
+│   ├── ai_analytics.py
+│   ├── battery_management.py
+│   └── task_planning.py
+├── utils/
+│   └── __init__.py
+├── data/
+│   └── tasks.json
+├── main.py
+├── requirements.txt
+└── README.md
+```
 
-Contributions are welcome! Here's how you can contribute:
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add some amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-Please ensure your code follows the project's coding style and includes appropriate documentation.
+## License
 
-## 📚 Documentation
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Each module and function in the codebase is documented with docstrings following the Google Python Style Guide. To generate the documentation locally, you can use tools like Sphinx.
+## Acknowledgments
 
-## 📋 Requirements
+- Built with [Streamlit](https://streamlit.io/)
+- Uses [psutil](https://github.com/giampaolo/psutil) for system monitoring
+- Inspired by modern system monitoring tools
 
-- Python 3.7+
-- streamlit>=1.24.0
-- streamlit-option-menu>=0.3.2
-- psutil>=5.9.0
-- plotly>=5.13.0
-- tabulate>=0.9.0
+## Support
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 👥 Team
-
-- SimpleRTOS Team
-
-## 🔗 Links
-
-- [GitHub Repository](https://github.com/ArindamHore-Student/SimpleRTOS)
-- [Report Issues](https://github.com/ArindamHore-Student/SimpleRTOS/issues) 
+For support, please open an issue in the GitHub repository or contact the development team. 

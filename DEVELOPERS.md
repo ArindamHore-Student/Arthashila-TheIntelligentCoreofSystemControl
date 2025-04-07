@@ -1,6 +1,6 @@
-# SimpleRTOS Developer Guide
+# Arthashila Developer Guide
 
-This guide provides detailed information for developers who want to understand, modify, or extend the SimpleRTOS application.
+This guide provides detailed information for developers who want to understand, modify, or extend the Arthashila application.
 
 ## Table of Contents
 - [Architecture Overview](#architecture-overview)
@@ -13,7 +13,7 @@ This guide provides detailed information for developers who want to understand, 
 
 ## Architecture Overview
 
-SimpleRTOS is built using a modular architecture with the following key components:
+Arthashila is built using a modular architecture with the following key components:
 
 1. **Main Application (main.py)**
    - Serves as the entry point and initializes the Streamlit UI
@@ -34,17 +34,20 @@ SimpleRTOS is built using a modular architecture with the following key componen
 ## Project Structure
 
 ```
-SimpleRTOS/
+Arthashila/
 ├── main.py                  # Application entry point
 ├── requirements.txt         # Project dependencies
 ├── setup.py                 # Package installation configuration
 ├── README.md                # User documentation
 ├── DEVELOPERS.md            # Developer documentation
+├── CHANGELOG.md             # Version history
+├── .gitignore               # Git exclusion patterns
 ├── features/                # Feature modules
 │   ├── __init__.py          # Feature module exports
 │   ├── system_overview.py   # System info display
 │   ├── process_manager.py   # Process management
-│   ├── performance_graphs.py # Performance monitoring
+│   ├── performance_graphs.py # Performance monitoring with AI anomaly detection
+│   ├── ai_analytics.py      # AI-powered analytics and X-Factor Process Optimizer
 │   ├── battery_management.py # Battery monitoring
 │   ├── task_planning.py     # Task planning
 │   └── collaboration_tools.py # Team collaboration
@@ -104,15 +107,19 @@ Each feature module is responsible for implementing a specific functionality:
    - Creates and displays interactive charts for system performance metrics
    - Tracks historical data for CPU, memory, and disk usage
 
-4. **battery_management.py**
+4. **ai_analytics.py**
+   - Provides AI-powered analytics and X-Factor Process Optimizer capabilities
+   - Analyzes system performance and provides optimization recommendations
+
+5. **battery_management.py**
    - Monitors battery status and provides power-saving recommendations
    - Displays battery statistics and remaining time estimates
 
-5. **task_planning.py**
+6. **task_planning.py**
    - Implements a task management system with creation, editing, and deletion
    - Includes task categorization, prioritization, and filtering
 
-6. **collaboration_tools.py**
+7. **collaboration_tools.py**
    - Provides features for team coordination and communication
    - Includes messaging and shared task management capabilities
 
@@ -144,7 +151,7 @@ Example template for a new feature module:
 """
 Feature Name - Purpose description
 
-This module implements a new feature for SimpleRTOS that provides specific functionality.
+This module implements a new feature for Arthashila that provides specific functionality.
 It includes UI components and data processing for [purpose].
 """
 
@@ -254,7 +261,7 @@ if 'key' not in st.session_state:
 
 ## Extension Points
 
-SimpleRTOS has several extension points where additional functionality can be added:
+Arthashila has several extension points where additional functionality can be added:
 
 1. **New Visualization Types**: Add new chart types to `utils/visualization.py`
 2. **System Monitoring Extensions**: Extend system monitoring capabilities in system_overview.py

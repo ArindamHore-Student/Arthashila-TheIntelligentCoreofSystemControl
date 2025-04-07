@@ -1,5 +1,5 @@
 """
-Battery Management Module for SimpleRTOS
+Battery Management Module for Arthashila
 
 This module provides battery monitoring and power management features.
 It displays battery status, remaining time, and power-saving tips
