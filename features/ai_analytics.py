@@ -46,12 +46,9 @@ ANOMALY_THRESHOLD = -0.4  # Threshold for anomaly detection
 
 def initialize_session_state():
     """
-    Initialize the session state variables for storing all necessary data.
-    
-    Returns:
-        dict: Dictionary containing initialized data structures
+    Initialize session state variables for storing AI analytics data.
     """
-    # System performance data
+    # Data collections for metrics
     if 'ai_cpu_data' not in st.session_state:
         st.session_state.ai_cpu_data = deque(maxlen=MAX_DATA_POINTS)
     
@@ -64,23 +61,11 @@ def initialize_session_state():
     if 'ai_network_data' not in st.session_state:
         st.session_state.ai_network_data = deque(maxlen=MAX_DATA_POINTS)
     
-    # Initialize machine learning models
-    if 'anomaly_model' not in st.session_state:
-        st.session_state.anomaly_model = IsolationForest(contamination=0.1, random_state=42)
-        st.session_state.anomaly_model_trained = False
+    # User behavior patterns
+    if 'user_patterns' not in st.session_state:
+        st.session_state.user_patterns = deque(maxlen=MAX_DATA_POINTS)
     
-    if 'prediction_model' not in st.session_state:
-        st.session_state.prediction_model = RandomForestRegressor(n_estimators=50, random_state=42)
-        st.session_state.prediction_model_trained = False
-    
-    if 'clustering_model' not in st.session_state:
-        st.session_state.clustering_model = KMeans(n_clusters=3, random_state=42)
-        st.session_state.clustering_model_trained = False
-    
-    # Logs and security data
-    if 'ai_security_logs' not in st.session_state:
-        st.session_state.ai_security_logs = deque(maxlen=100)
-    
+    # Initialize prediction data
     if 'ai_prediction_data' not in st.session_state:
         st.session_state.ai_prediction_data = {
             'cpu': [], 
@@ -89,13 +74,39 @@ def initialize_session_state():
             'network': []
         }
     
-    # Analysis results
+    # Anomaly detection model - initialize with 4 features (CPU, memory, disk, network)
+    if 'anomaly_model' not in st.session_state:
+        st.session_state.anomaly_model = IsolationForest(contamination=0.05, n_estimators=100, random_state=42)
+        st.session_state.anomaly_model_trained = False
+    
+    # AI insights collection
     if 'ai_insights' not in st.session_state:
         st.session_state.ai_insights = []
     
-    # User behavior patterns
-    if 'user_patterns' not in st.session_state:
-        st.session_state.user_patterns = deque(maxlen=100)
+    # Security logs
+    if 'ai_security_logs' not in st.session_state:
+        st.session_state.ai_security_logs = []
+    
+    # Feature flags
+    if 'enable_anomaly_detection' not in st.session_state:
+        st.session_state.enable_anomaly_detection = True
+    
+    if 'enable_predictive_analytics' not in st.session_state:
+        st.session_state.enable_predictive_analytics = True
+    
+    if 'enable_user_behavior_analytics' not in st.session_state:
+        st.session_state.enable_user_behavior_analytics = True
+    
+    if 'enable_security_verification' not in st.session_state:
+        st.session_state.enable_security_verification = True
+    
+    # Process optimizer
+    if 'process_optimization_enabled' not in st.session_state:
+        st.session_state.process_optimization_enabled = False
+        
+    # Set refresh rate if not already set
+    if 'refresh_rate' not in st.session_state:
+        st.session_state.refresh_rate = 2.0
     
     return {
         'cpu_data': st.session_state.ai_cpu_data,
@@ -223,74 +234,60 @@ def check_for_anomalies():
     Returns:
         bool: True if anomaly detected, False otherwise
     """
-    # Need at least 10 data points for meaningful detection
-    if len(st.session_state.ai_cpu_data) < 10:
-        return False
+    # Prepare data for anomaly detection
+    cpu_values = np.array([v for _, v in st.session_state.ai_cpu_data]).reshape(-1, 1)
+    memory_values = np.array([v for _, v in st.session_state.ai_memory_data]).reshape(-1, 1)
+    disk_values = np.array([v for _, v in st.session_state.ai_disk_data]).reshape(-1, 1)
+    network_values = np.array([v for _, v in st.session_state.ai_network_data]).reshape(-1, 1)
+    
+    # Combine features for more robust detection
+    features = np.hstack((cpu_values, memory_values, disk_values, network_values))
+    
+    # Standardize the data
+    scaler = StandardScaler()
+    features_scaled = scaler.fit_transform(features)
+    
+    # Train the model if not already trained
+    if not st.session_state.anomaly_model_trained and len(st.session_state.ai_cpu_data) >= MAX_DATA_POINTS // 2:
+        st.session_state.anomaly_model.fit(features_scaled)
+        st.session_state.anomaly_model_trained = True
+    
+    # Detect anomalies if model is trained
+    if st.session_state.anomaly_model_trained:
+        # Predict anomaly scores (-1 for anomalies, 1 for normal data)
+        scores = st.session_state.anomaly_model.decision_function(features_scaled)
         
-    try:
-        # Prepare data for anomaly detection
-        cpu_values = np.array([v for _, v in st.session_state.ai_cpu_data]).reshape(-1, 1)
-        memory_values = np.array([v for _, v in st.session_state.ai_memory_data]).reshape(-1, 1)
-        
-        # Only use CPU and memory for simplicity and stability
-        # This ensures feature consistency between training and inference
-        features = np.hstack((cpu_values, memory_values))
-        
-        # Standardize the data
-        scaler = StandardScaler()
-        features_scaled = scaler.fit_transform(features)
-        
-        # Train the model if not already trained
-        if not st.session_state.anomaly_model_trained and len(st.session_state.ai_cpu_data) >= MAX_DATA_POINTS // 2:
-            # Re-initialize model when training to ensure clean state
-            st.session_state.anomaly_model = IsolationForest(contamination=0.1, random_state=42)
-            st.session_state.anomaly_model.fit(features_scaled)
-            st.session_state.anomaly_model_trained = True
-        
-        # Detect anomalies if model is trained
-        if st.session_state.anomaly_model_trained:
-            # Predict anomaly scores (-1 for anomalies, 1 for normal data)
-            scores = st.session_state.anomaly_model.decision_function(features_scaled)
+        # Check if the latest data point is anomalous
+        if scores[-1] < ANOMALY_THRESHOLD:
+            # Add to security log
+            log_entry = {
+                "timestamp": time.time(),
+                "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "event_type": "ANOMALY_DETECTED",
+                "metrics": {
+                    "cpu": cpu_values[-1][0],
+                    "memory": memory_values[-1][0],
+                    "disk": disk_values[-1][0],
+                    "network": network_values[-1][0]
+                },
+                "anomaly_score": scores[-1]
+            }
+            log_entry["integrity_hash"] = hashlib.sha256(json.dumps(log_entry, sort_keys=True).encode()).hexdigest()
+            st.session_state.ai_security_logs.append(log_entry)
             
-            # Check if the latest data point is anomalous
-            if scores[-1] < ANOMALY_THRESHOLD:
-                # Get all four metrics for logging, even though we only use two for detection
-                disk_values = np.array([v for _, v in st.session_state.ai_disk_data]).reshape(-1, 1)
-                network_values = np.array([v for _, v in st.session_state.ai_network_data]).reshape(-1, 1)
-                
-                # Add to security log
-                log_entry = {
-                    "timestamp": time.time(),
-                    "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "event_type": "ANOMALY_DETECTED",
-                    "metrics": {
-                        "cpu": cpu_values[-1][0],
-                        "memory": memory_values[-1][0],
-                        "disk": disk_values[-1][0],
-                        "network": network_values[-1][0]
-                    },
-                    "anomaly_score": scores[-1]
-                }
-                log_entry["integrity_hash"] = hashlib.sha256(json.dumps(log_entry, sort_keys=True).encode()).hexdigest()
-                st.session_state.ai_security_logs.append(log_entry)
-                
-                # Add insight
-                insight = {
-                    "type": "anomaly",
-                    "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "message": "System behavior anomaly detected",
-                    "details": f"Unusual patterns in CPU/Memory usage (anomaly score: {scores[-1]:.4f})",
-                    "severity": "high" if scores[-1] < -0.6 else "medium"
-                }
-                st.session_state.ai_insights.append(insight)
-                
-                return True
-        
-        return False
-    except Exception as e:
-        # Log the error but don't crash
-        print(f"Error in anomaly detection: {str(e)}")
-        return False
+            # Add insight
+            insight = {
+                "type": "anomaly",
+                "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "message": "System behavior anomaly detected",
+                "details": f"Unusual patterns in system metrics (anomaly score: {scores[-1]:.4f})",
+                "severity": "high" if scores[-1] < -0.6 else "medium"
+            }
+            st.session_state.ai_insights.append(insight)
+            
+            return True
+    
+    return False
 
 def predict_resource_usage(steps=10):
     """
@@ -634,24 +631,44 @@ def render_system_metrics(current_metrics):
 
 def render_ai_insights():
     """
-    Render AI-generated insights from system and user data.
+    Render the AI insights section with analysis results and recommendations.
     """
-    st.subheader("AI Insights")
+    st.markdown("### 🧠 System Insights")
     
-    if not st.session_state.ai_insights:
-        st.info("No insights available yet. The AI is gathering and analyzing data.")
-        return
+    # Group insights by type
+    insights_by_type = {}
+    for insight in st.session_state.ai_insights:
+        insight_type = insight.get('type', 'general')
+        if insight_type not in insights_by_type:
+            insights_by_type[insight_type] = []
+        insights_by_type[insight_type].append(insight)
     
-    # Sort insights by time (newest first) and limit to most recent 5
-    recent_insights = sorted(st.session_state.ai_insights, key=lambda x: x['time'], reverse=True)[:5]
-    
-    for insight in recent_insights:
-        if insight['severity'] == 'high':
-            st.error(f"🚨 **{insight['message']}**: {insight['details']} ({insight['time']})")
-        elif insight['severity'] == 'medium':
-            st.warning(f"⚠️ **{insight['message']}**: {insight['details']} ({insight['time']})")
-        else:
-            st.info(f"ℹ️ **{insight['message']}**: {insight['details']} ({insight['time']})")
+    # Show insights in expandable sections by type
+    if not insights_by_type:
+        st.info("No insights available yet. The AI is still collecting data for analysis.")
+    else:
+        # Create DataFrame for all insights
+        insight_data = []
+        for insight in st.session_state.ai_insights:
+            insight_data.append({
+                "Time": insight.get('time', ''),
+                "Type": insight.get('type', 'general').capitalize(),
+                "Message": insight.get('message', ''),
+                "Severity": insight.get('severity', 'info').capitalize()
+            })
+        
+        # Clean up message text by removing newlines
+        for item in insight_data:
+            if '\n' in item['Message']:
+                item['Message'] = item['Message'].replace('\n', ' ')
+        
+        # Display as table with full width
+        st.dataframe(pd.DataFrame(insight_data), use_container_width=True)
+        
+        # Clear insights button
+        if st.button("Clear Insights"):
+            st.session_state.ai_insights = []
+            st.rerun()
 
 def render_performance_graphs(data_collections, prediction_data=None, show_predictions=True):
     """

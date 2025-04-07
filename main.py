@@ -17,6 +17,7 @@ import sys
 import os
 import psutil
 import time
+from datetime import datetime
 
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -180,6 +181,67 @@ def load_custom_css():
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
+        
+        /* Real-time indicator styling */
+        .real-time-indicator {
+            display: inline-flex;
+            align-items: center;
+            background-color: #232730;
+            border-radius: 16px;
+            padding: 2px 10px;
+            margin-left: 10px;
+            font-size: 0.8em;
+        }
+        .indicator-dot {
+            height: 8px;
+            width: 8px;
+            background-color: #0cce6b;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        
+        /* Resource usage indicators */
+        .resource-indicator {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+        .resource-label {
+            flex: 1;
+            color: #a3a8b8;
+        }
+        .resource-value {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .usage-bar {
+            height: 4px;
+            border-radius: 2px;
+            flex: 2;
+            background-color: #2d3747;
+            position: relative;
+            overflow: hidden;
+        }
+        .usage-fill {
+            position: absolute;
+            height: 100%;
+            left: 0;
+            top: 0;
+        }
+        .cpu-usage { background-color: #4f8bf9; }
+        .memory-usage { background-color: #0cce6b; }
+        .battery-usage { background-color: #f9a825; }
+        .low-usage { background-color: #0cce6b; }
+        .medium-usage { background-color: #f9a825; }
+        .high-usage { background-color: #ff4b4b; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -245,60 +307,69 @@ def render_sidebar():
         # System stats in sidebar
         st.markdown("#### System Status")
         
-        # Current CPU and memory usage
-        cpu_usage = psutil.cpu_percent(interval=0.1)
-        memory_usage = psutil.virtual_memory().percent
+        # Get current system information to share between components
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
         
         # Show current time
-        st.markdown(f"**Time**: {time.strftime('%H:%M:%S')}")
+        st.markdown(f"**Time**: {datetime.now().strftime('%H:%M:%S')}")
         
-        # Display system metrics in sidebar
-        cpu_color = "#0cce6b" if cpu_usage < 50 else "#f9a825" if cpu_usage < 80 else "#ff4b4b"
-        memory_color = "#0cce6b" if memory_usage < 50 else "#f9a825" if memory_usage < 80 else "#ff4b4b"
-        
-        st.markdown(f"""
-        <div style="margin: 10px 0;">
-            <div style="font-size: 0.8em; color: #a0a0a0;">CPU Usage</div>
-            <div style="display: flex; align-items: center;">
-                <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
-                    <div style="width: {cpu_usage}%; background-color: {cpu_color}; height: 8px; border-radius: 4px;"></div>
+        # CPU Usage
+        st.markdown(
+            f"""
+            <div class="resource-indicator">
+                <div class="resource-label">CPU Usage</div>
+                <div class="resource-value">{cpu_percent}%</div>
+                <div class="usage-bar">
+                    <div class="usage-fill cpu-usage" style="width: {cpu_percent}%;"></div>
                 </div>
-                <div style="font-weight: bold; color: {cpu_color};">{cpu_usage}%</div>
             </div>
-        </div>
+            """,
+            unsafe_allow_html=True
+        )
         
-        <div style="margin: 10px 0;">
-            <div style="font-size: 0.8em; color: #a0a0a0;">Memory Usage</div>
-            <div style="display: flex; align-items: center;">
-                <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
-                    <div style="width: {memory_usage}%; background-color: {memory_color}; height: 8px; border-radius: 4px;"></div>
+        # Memory Usage
+        memory_percent = memory.percent
+        st.markdown(
+            f"""
+            <div class="resource-indicator">
+                <div class="resource-label">Memory Usage</div>
+                <div class="resource-value">{memory_percent}%</div>
+                <div class="usage-bar">
+                    <div class="usage-fill memory-usage" style="width: {memory_percent}%;"></div>
                 </div>
-                <div style="font-weight: bold; color: {memory_color};">{memory_usage}%</div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True
+        )
         
-        # Add battery indicator if available
+        # Battery status if available
         if hasattr(psutil, "sensors_battery"):
             battery = psutil.sensors_battery()
             if battery:
                 percent = battery.percent
-                charging = battery.power_plugged
+                power_plugged = battery.power_plugged
+                status = "Charging" if power_plugged else "Discharging"
                 
-                battery_color = "#0cce6b" if percent > 50 else "#f9a825" if percent > 20 else "#ff4b4b"
-                charging_indicator = "⚡" if charging else ""
+                # Determine battery color class
+                color_class = "low-usage"
+                if percent < 20:
+                    color_class = "high-usage"
+                elif percent < 50:
+                    color_class = "medium-usage"
                 
-                st.markdown(f"""
-                <div style="margin: 10px 0;">
-                    <div style="font-size: 0.8em; color: #a0a0a0;">Battery</div>
-                    <div style="display: flex; align-items: center;">
-                        <div style="flex-grow: 1; background-color: #333; height: 8px; border-radius: 4px; margin-right: 10px;">
-                            <div style="width: {percent}%; background-color: {battery_color}; height: 8px; border-radius: 4px;"></div>
+                st.markdown(
+                    f"""
+                    <div class="resource-indicator">
+                        <div class="resource-label">Battery ({status})</div>
+                        <div class="resource-value">{percent}%</div>
+                        <div class="usage-bar">
+                            <div class="usage-fill {color_class}" style="width: {percent}%;"></div>
                         </div>
-                        <div style="font-weight: bold; color: {battery_color};">{percent}% {charging_indicator}</div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """,
+                    unsafe_allow_html=True
+                )
         
         # Footer
         st.markdown("---")
@@ -310,33 +381,210 @@ def render_sidebar():
         return selected
 
 def main():
-    """Main entry point for the application"""
-    # Set page config
+    """Main application entry point"""
+    
+    # Set page configuration
     st.set_page_config(
-        page_title="Arthashila System Monitor",
-        page_icon="⚙️",
+        page_title="Arthashila - System Monitor",
+        page_icon="🔍",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="expanded"
     )
+
+    # Custom CSS for styling
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+        color: #fafafa;
+    }
     
-    # Load custom CSS
-    load_custom_css()
+    h1, h2, h3, h4 {
+        color: #4f8bf9;
+    }
     
-    # Render sidebar and get selected option
-    selection = render_sidebar()
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+    }
     
-    # Display appropriate page based on selection
-    if selection == "System Overview":
+    .stTabs [data-baseweb="tab"] {
+        background-color: #1a1f2c;
+        border-radius: 4px 4px 0px 0px;
+        padding: 10px 16px;
+        color: white;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #0cce6b;
+        color: black;
+    }
+    
+    /* Real-time indicator styling */
+    .real-time-indicator {
+        display: inline-flex;
+        align-items: center;
+        background-color: #232730;
+        border-radius: 16px;
+        padding: 2px 10px;
+        margin-left: 10px;
+        font-size: 0.8em;
+    }
+    .indicator-dot {
+        height: 8px;
+        width: 8px;
+        background-color: #0cce6b;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 5px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
+    }
+    
+    /* Resource usage indicators */
+    .resource-indicator {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 0.85em;
+    }
+    .resource-label {
+        flex: 1;
+        color: #a3a8b8;
+    }
+    .resource-value {
+        font-weight: bold;
+        margin-right: 5px;
+    }
+    .usage-bar {
+        height: 4px;
+        border-radius: 2px;
+        flex: 2;
+        background-color: #2d3747;
+        position: relative;
+        overflow: hidden;
+    }
+    .usage-fill {
+        position: absolute;
+        height: 100%;
+        left: 0;
+        top: 0;
+    }
+    .cpu-usage { background-color: #4f8bf9; }
+    .memory-usage { background-color: #0cce6b; }
+    .battery-usage { background-color: #f9a825; }
+    .low-usage { background-color: #0cce6b; }
+    .medium-usage { background-color: #f9a825; }
+    .high-usage { background-color: #ff4b4b; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Get current system information to share between components
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    
+    # Sidebar
+    with st.sidebar:
+        st.title("🔍 Arthashila")
+        st.caption("System Monitor")
+        
+        # Navigation
+        st.header("Navigation")
+        option = st.radio(
+            "Select a feature",
+            [
+                "System Overview",
+                "Process Manager",
+                "Performance Graphs",
+                "AI Analytics",
+                "Battery & Power",
+                "Task Planning"
+            ]
+        )
+        
+        # System status in sidebar
+        st.markdown("---")
+        st.subheader("System Status")
+        
+        # Show current time
+        st.markdown(f"**Time:** {datetime.now().strftime('%H:%M:%S')}")
+        
+        # CPU Usage
+        st.markdown(
+            f"""
+            <div class="resource-indicator">
+                <div class="resource-label">CPU Usage</div>
+                <div class="resource-value">{cpu_percent}%</div>
+                <div class="usage-bar">
+                    <div class="usage-fill cpu-usage" style="width: {cpu_percent}%;"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Memory Usage
+        memory_percent = memory.percent
+        st.markdown(
+            f"""
+            <div class="resource-indicator">
+                <div class="resource-label">Memory Usage</div>
+                <div class="resource-value">{memory_percent}%</div>
+                <div class="usage-bar">
+                    <div class="usage-fill memory-usage" style="width: {memory_percent}%;"></div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Battery status if available
+        if hasattr(psutil, "sensors_battery"):
+            battery = psutil.sensors_battery()
+            if battery:
+                percent = battery.percent
+                power_plugged = battery.power_plugged
+                status = "Charging" if power_plugged else "Discharging"
+                
+                # Determine battery color class
+                color_class = "low-usage"
+                if percent < 20:
+                    color_class = "high-usage"
+                elif percent < 50:
+                    color_class = "medium-usage"
+                
+                st.markdown(
+                    f"""
+                    <div class="resource-indicator">
+                        <div class="resource-label">Battery ({status})</div>
+                        <div class="resource-value">{percent}%</div>
+                        <div class="usage-bar">
+                            <div class="usage-fill {color_class}" style="width: {percent}%;"></div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+        
+        # Version and developer info
+        st.markdown("---")
+        st.caption("Version 1.2 | Developed by Arthashila Team")
+
+    # Main content
+    if option == "System Overview":
         system_overview()
-    elif selection == "Process Manager":
+    elif option == "Process Manager":
         process_manager()
-    elif selection == "Performance Graphs":
+    elif option == "Performance Graphs":
         performance_graphs()
-    elif selection == "AI Analytics":
+    elif option == "AI Analytics":
         ai_analytics()
-    elif selection == "Battery & Power":
+    elif option == "Battery & Power":
         battery_management()
-    elif selection == "Task Planning":
+    elif option == "Task Planning":
         task_planning()
 
 if __name__ == "__main__":

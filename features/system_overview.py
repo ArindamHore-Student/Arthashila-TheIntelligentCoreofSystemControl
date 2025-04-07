@@ -15,6 +15,7 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
+import random
 
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -190,14 +191,57 @@ def system_overview():
         
         # CPU Usage per core
         st.markdown("#### Per-Core Usage")
-        cpu_percents = psutil.cpu_percent(percpu=True)
         
-        cols = st.columns(4)
-        for i, (col, percent) in enumerate(zip(cols * (len(cpu_percents) // 4 + 1), cpu_percents)):
-            with col:
-                st.markdown(f"**Core {i}**")
-                st.progress(percent / 100)
-                st.markdown(f"<div style='text-align: center;'>{percent}%</div>", unsafe_allow_html=True)
+        # Get actual CPU percentages per core with longer interval for more accuracy
+        cpu_percents = psutil.cpu_percent(interval=0.3, percpu=True)
+        
+        # Create a styled header for the CPU cores
+        st.markdown("""
+        <div style="display: flex; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px;">
+            <div style="flex: 1;">Core</div>
+            <div style="flex: 3;">Usage</div>
+            <div style="flex: 1; text-align: right;">Percentage</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create a dynamic grid based on the number of cores
+        num_cols = 2 if len(cpu_percents) <= 8 else 3  # Use 3 columns for systems with many cores
+        cpu_cols = st.columns(num_cols)
+        
+        # Distribute cores across columns
+        cores_per_col = (len(cpu_percents) + num_cols - 1) // num_cols
+        
+        for col_idx in range(num_cols):
+            with cpu_cols[col_idx]:
+                start_idx = col_idx * cores_per_col
+                end_idx = min(start_idx + cores_per_col, len(cpu_percents))
+                
+                for i in range(start_idx, end_idx):
+                    percent = round(cpu_percents[i], 1)  # Round to 1 decimal place
+                    
+                    # Determine color based on usage
+                    if percent < 30:
+                        color = "#0cce6b"  # Green
+                    elif percent < 70:
+                        color = "#f9a825"  # Yellow/Orange
+                    else:
+                        color = "#ff4b4b"  # Red
+                    
+                    # Create a styled row for each core with improved visuals
+                    st.markdown(f"""
+                    <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                        <div style="flex: 1; font-weight: bold; color: white;">Core {i}</div>
+                        <div style="flex: 3; margin: 0 10px;">
+                            <div style="background-color: #2d3747; height: 8px; border-radius: 4px; position: relative; overflow: hidden;">
+                                <div style="position: absolute; top: 0; left: 0; width: {percent}%; height: 100%; background-color: {color}; border-radius: 4px;
+                                    background: linear-gradient(90deg, {color} 0%, {color}aa 100%);
+                                    box-shadow: 0 0 5px {color};">
+                                </div>
+                            </div>
+                        </div>
+                        <div style="flex: 1; text-align: right; font-weight: bold; color: {color};">{percent}%</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
     # Memory Information
     with st.expander("🧠 Memory Information", expanded=True):

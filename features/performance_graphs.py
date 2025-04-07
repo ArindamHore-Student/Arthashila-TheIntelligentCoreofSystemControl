@@ -251,12 +251,8 @@ def predict_future_usage(steps=10):
         dict: Predicted values for CPU and memory in a dictionary with keys 'cpu' and 'memory'
     """
     try:
-        # Need enough data points for meaningful prediction
-        if not hasattr(st.session_state, 'cpu_data') or len(st.session_state.cpu_data) < 10:
-            # Initialize prediction_data if not present
-            if 'prediction_data' not in st.session_state:
-                st.session_state.prediction_data = {'cpu': [], 'memory': []}
-            return st.session_state.prediction_data
+        if len(st.session_state.cpu_data) < 10:
+            return None
         
         # Extract recent values
         recent_cpu = [v for _, v in list(st.session_state.cpu_data)[-10:]]
@@ -270,26 +266,13 @@ def predict_future_usage(steps=10):
         memory_predictions = []
         
         # Start with last actual values
-        last_cpu = recent_cpu[-1] if recent_cpu else 0
-        last_memory = recent_memory[-1] if recent_memory else 0
+        last_cpu = recent_cpu[-1]
+        last_memory = recent_memory[-1]
         
         for _ in range(steps):
-            # Calculate trend based on last few points - with error handling
-            if len(recent_cpu) >= 5:
-                try:
-                    cpu_trend = np.mean(np.diff(recent_cpu[-5:]))
-                except:
-                    cpu_trend = 0
-            else:
-                cpu_trend = 0
-                
-            if len(recent_memory) >= 5:
-                try:
-                    memory_trend = np.mean(np.diff(recent_memory[-5:]))
-                except:
-                    memory_trend = 0
-            else:
-                memory_trend = 0
+            # Calculate trend based on last few points
+            cpu_trend = np.mean(np.diff(recent_cpu[-5:]) if len(recent_cpu) >= 5 else [0])
+            memory_trend = np.mean(np.diff(recent_memory[-5:]) if len(recent_memory) >= 5 else [0])
             
             # Predict next value with dampening
             next_cpu = max(0, min(100, last_cpu + cpu_trend * cpu_weight))
@@ -306,10 +289,7 @@ def predict_future_usage(steps=10):
             cpu_weight *= 0.9
             memory_weight *= 0.9
         
-        # Store predictions and ensure the dictionary is created if it doesn't exist
-        if 'prediction_data' not in st.session_state:
-            st.session_state.prediction_data = {}
-            
+        # Store predictions
         st.session_state.prediction_data = {
             'cpu': cpu_predictions,
             'memory': memory_predictions
@@ -319,9 +299,7 @@ def predict_future_usage(steps=10):
     except Exception as e:
         logger.error(f"Error predicting future usage: {str(e)}")
         # Return empty predictions if forecasting fails
-        if 'prediction_data' not in st.session_state:
-            st.session_state.prediction_data = {'cpu': [], 'memory': []}
-        return st.session_state.prediction_data
+        return {'cpu': [], 'memory': []}
 
 def render_performance_controls():
     """
@@ -383,11 +361,6 @@ def render_performance_graphs(cpu_data, memory_data):
         memory_data (deque): Collection of memory usage data points
     """
     try:
-        # Ensure we have data to display
-        if not cpu_data or not memory_data:
-            st.warning("Waiting for performance data to be collected...")
-            return
-            
         # Create two columns for CPU and Memory graphs
         col1, col2 = st.columns(2)
         
@@ -403,68 +376,55 @@ def render_performance_graphs(cpu_data, memory_data):
             )
             
             # Add prediction overlay if enabled and predictions exist
-            if st.session_state.get('enable_predictions', False):
-                try:
-                    # Safely access prediction data
-                    prediction_data = st.session_state.get('prediction_data', {})
-                    cpu_predictions = prediction_data.get('cpu', [])
+            if st.session_state.get('enable_predictions', False) and st.session_state.prediction_data['cpu']:
+                # Create x values for predictions (future time points)
+                if cpu_data:
+                    last_time = cpu_data[-1][0]
+                    time_step = 2  # seconds between predictions
+                    future_times = [last_time + (i+1)*time_step for i in range(len(st.session_state.prediction_data['cpu']))]
                     
-                    # Only add predictions if we have them and have current data
-                    if cpu_predictions and cpu_data:
-                        # Create x values for predictions (future time points)
-                        last_time = cpu_data[-1][0]
-                        time_step = 2  # seconds between predictions
-                        future_times = [last_time + (i+1)*time_step for i in range(len(cpu_predictions))]
-                        
-                        # Add prediction trace
-                        cpu_fig.add_trace(
-                            go.Scatter(
-                                x=future_times,
-                                y=cpu_predictions,
-                                mode="lines+markers",
-                                line=dict(color="rgba(255, 165, 0, 0.8)", dash="dash"),
-                                name="Predicted CPU",
-                                marker=dict(symbol="circle-open")
-                            )
+                    # Add prediction trace
+                    cpu_fig.add_trace(
+                        go.Scatter(
+                            x=future_times,
+                            y=st.session_state.prediction_data['cpu'],
+                            mode="lines+markers",
+                            line=dict(color="rgba(255, 165, 0, 0.8)", dash="dash"),
+                            name="Predicted CPU",
+                            marker=dict(symbol="circle-open")
                         )
-                except Exception as e:
-                    # Silently handle prediction errors
-                    logger.error(f"Error adding CPU predictions: {str(e)}")
+                    )
             
             # Mark anomalies on the graph if any are detected and we have anomaly history
             if hasattr(st.session_state, 'anomaly_history') and st.session_state.anomaly_history:
-                try:
-                    # Extract times and values for anomalies that are within our data window
-                    min_time = cpu_data[0][0] if cpu_data else 0
-                    max_time = cpu_data[-1][0] if cpu_data else float('inf')
-                    
-                    anomaly_times = []
-                    anomaly_values = []
-                    
-                    for anomaly in st.session_state.anomaly_history:
-                        if min_time <= anomaly.get('time', 0) <= max_time:
-                            anomaly_times.append(anomaly.get('time', 0))
-                            anomaly_values.append(anomaly.get('cpu', 0))
-                    
-                    if anomaly_times:
-                        # Add red markers for anomalies
-                        cpu_fig.add_trace(
-                            go.Scatter(
-                                x=anomaly_times,
-                                y=anomaly_values,
-                                mode="markers",
-                                marker=dict(
-                                    color="red",
-                                    size=10,
-                                    symbol="x",
-                                    line=dict(width=2, color="red")
-                                ),
-                                name="Anomalies"
-                            )
+                # Extract times and values for anomalies that are within our data window
+                min_time = cpu_data[0][0] if cpu_data else 0
+                max_time = cpu_data[-1][0] if cpu_data else float('inf')
+                
+                anomaly_times = []
+                anomaly_values = []
+                
+                for anomaly in st.session_state.anomaly_history:
+                    if min_time <= anomaly.get('time', 0) <= max_time:
+                        anomaly_times.append(anomaly.get('time', 0))
+                        anomaly_values.append(anomaly.get('cpu', 0))
+                
+                if anomaly_times:
+                    # Add red markers for anomalies
+                    cpu_fig.add_trace(
+                        go.Scatter(
+                            x=anomaly_times,
+                            y=anomaly_values,
+                            mode="markers",
+                            marker=dict(
+                                color="red",
+                                size=10,
+                                symbol="x",
+                                line=dict(width=2, color="red")
+                            ),
+                            name="Anomalies"
                         )
-                except Exception as e:
-                    # Silently handle anomaly plotting errors
-                    logger.error(f"Error plotting CPU anomalies: {str(e)}")
+                    )
             
             # Add hover annotations for better real-time monitoring
             cpu_fig.update_layout(
@@ -488,68 +448,55 @@ def render_performance_graphs(cpu_data, memory_data):
             )
             
             # Add prediction overlay if enabled and predictions exist
-            if st.session_state.get('enable_predictions', False):
-                try:
-                    # Safely access prediction data
-                    prediction_data = st.session_state.get('prediction_data', {})
-                    memory_predictions = prediction_data.get('memory', [])
+            if st.session_state.get('enable_predictions', False) and st.session_state.prediction_data['memory']:
+                # Create x values for predictions (future time points)
+                if memory_data:
+                    last_time = memory_data[-1][0]
+                    time_step = 2  # seconds between predictions
+                    future_times = [last_time + (i+1)*time_step for i in range(len(st.session_state.prediction_data['memory']))]
                     
-                    # Only add predictions if we have them and have current data
-                    if memory_predictions and memory_data:
-                        # Create x values for predictions (future time points)
-                        last_time = memory_data[-1][0]
-                        time_step = 2  # seconds between predictions
-                        future_times = [last_time + (i+1)*time_step for i in range(len(memory_predictions))]
-                        
-                        # Add prediction trace
-                        memory_fig.add_trace(
-                            go.Scatter(
-                                x=future_times,
-                                y=memory_predictions,
-                                mode="lines+markers",
-                                line=dict(color="rgba(255, 165, 0, 0.8)", dash="dash"),
-                                name="Predicted Memory",
-                                marker=dict(symbol="circle-open")
-                            )
+                    # Add prediction trace
+                    memory_fig.add_trace(
+                        go.Scatter(
+                            x=future_times,
+                            y=st.session_state.prediction_data['memory'],
+                            mode="lines+markers",
+                            line=dict(color="rgba(255, 165, 0, 0.8)", dash="dash"),
+                            name="Predicted Memory",
+                            marker=dict(symbol="circle-open")
                         )
-                except Exception as e:
-                    # Silently handle prediction errors
-                    logger.error(f"Error adding memory predictions: {str(e)}")
+                    )
             
             # Mark anomalies on the graph if any are detected
             if hasattr(st.session_state, 'anomaly_history') and st.session_state.anomaly_history:
-                try:
-                    # Extract times and values for anomalies that are within our data window
-                    min_time = memory_data[0][0] if memory_data else 0
-                    max_time = memory_data[-1][0] if memory_data else float('inf')
-                    
-                    anomaly_times = []
-                    anomaly_values = []
-                    
-                    for anomaly in st.session_state.anomaly_history:
-                        if min_time <= anomaly.get('time', 0) <= max_time:
-                            anomaly_times.append(anomaly.get('time', 0))
-                            anomaly_values.append(anomaly.get('memory', 0))
-                    
-                    if anomaly_times:
-                        # Add red markers for anomalies
-                        memory_fig.add_trace(
-                            go.Scatter(
-                                x=anomaly_times,
-                                y=anomaly_values,
-                                mode="markers",
-                                marker=dict(
-                                    color="red",
-                                    size=10,
-                                    symbol="x",
-                                    line=dict(width=2, color="red")
-                                ),
-                                name="Anomalies"
-                            )
+                # Extract times and values for anomalies that are within our data window
+                min_time = memory_data[0][0] if memory_data else 0
+                max_time = memory_data[-1][0] if memory_data else float('inf')
+                
+                anomaly_times = []
+                anomaly_values = []
+                
+                for anomaly in st.session_state.anomaly_history:
+                    if min_time <= anomaly.get('time', 0) <= max_time:
+                        anomaly_times.append(anomaly.get('time', 0))
+                        anomaly_values.append(anomaly.get('memory', 0))
+                
+                if anomaly_times:
+                    # Add red markers for anomalies
+                    memory_fig.add_trace(
+                        go.Scatter(
+                            x=anomaly_times,
+                            y=anomaly_values,
+                            mode="markers",
+                            marker=dict(
+                                color="red",
+                                size=10,
+                                symbol="x",
+                                line=dict(width=2, color="red")
+                            ),
+                            name="Anomalies"
                         )
-                except Exception as e:
-                    # Silently handle anomaly plotting errors
-                    logger.error(f"Error plotting memory anomalies: {str(e)}")
+                    )
             
             # Add hover annotations
             memory_fig.update_layout(
@@ -568,91 +515,76 @@ def render_performance_graphs(cpu_data, memory_data):
             with st.expander("🚨 Anomaly Detection Details", expanded=True):
                 st.markdown("### System Anomalies Detected")
                 
-                try:
-                    # Get the anomaly details
-                    anomaly_details = st.session_state.get('anomaly_details', {})
+                # Get the anomaly details
+                anomaly_details = st.session_state.get('anomaly_details', {})
+                
+                if anomaly_details:
+                    anomaly_score = anomaly_details.get('score', 0)
+                    severity = "High" if anomaly_score < -0.6 else "Medium" if anomaly_score < -0.4 else "Low"
+                    severity_color = "#ff0000" if severity == "High" else "#ff9900" if severity == "Medium" else "#ffcc00"
                     
-                    if anomaly_details:
-                        anomaly_score = anomaly_details.get('score', 0)
-                        severity = "High" if anomaly_score < -0.6 else "Medium" if anomaly_score < -0.4 else "Low"
-                        severity_color = "#ff0000" if severity == "High" else "#ff9900" if severity == "Medium" else "#ffcc00"
-                        
-                        st.markdown(f"""
-                        <div style="padding: 10px; border-radius: 5px; background-color: rgba(255, 0, 0, 0.1); border-left: 5px solid {severity_color};">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <div style="font-weight: bold; font-size: 16px;">Anomaly Detected</div>
-                                    <div>CPU: {anomaly_details.get('cpu', 0):.1f}%, Memory: {anomaly_details.get('memory', 0):.1f}%</div>
-                                </div>
-                                <div>
-                                    <span style="font-size: 14px; padding: 3px 8px; background-color: {severity_color}; color: white; border-radius: 3px;">
-                                        {severity} Severity
-                                    </span>
-                                </div>
+                    st.markdown(f"""
+                    <div style="padding: 10px; border-radius: 5px; background-color: rgba(255, 0, 0, 0.1); border-left: 5px solid {severity_color};">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 16px;">Anomaly Detected</div>
+                                <div>CPU: {anomaly_details.get('cpu', 0):.1f}%, Memory: {anomaly_details.get('memory', 0):.1f}%</div>
                             </div>
-                            <div style="margin-top: 10px;">
-                                <div style="font-size: 14px;">Anomaly score: {anomaly_score:.4f}</div>
-                                <div style="font-size: 14px;">Time: {datetime.fromtimestamp(anomaly_details.get('time', time.time())).strftime('%H:%M:%S')}</div>
+                            <div>
+                                <span style="font-size: 14px; padding: 3px 8px; background-color: {severity_color}; color: white; border-radius: 3px;">
+                                    {severity} Severity
+                                </span>
                             </div>
                         </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Potential causes and recommended actions
-                        st.markdown("#### Potential Causes")
-                        causes = [
-                            "Unusual process activity or resource consumption",
-                            "Background system operations",
-                            "Malware or unwanted applications",
-                            "System service issues"
-                        ]
-                        
-                        for cause in causes:
-                            st.markdown(f"- {cause}")
-                        
-                        st.markdown("#### Recommended Actions")
-                        actions = [
-                            "Check the Process Manager for resource-intensive processes",
-                            "Run a system scan for malware",
-                            "Review recently installed applications",
-                            "Monitor system for recurring patterns"
-                        ]
-                        
-                        for action in actions:
-                            st.markdown(f"- {action}")
-                except Exception as e:
-                    # Log but continue if anomaly details can't be shown
-                    logger.error(f"Error showing anomaly details: {str(e)}")
-                    st.error("Could not display anomaly details.")
+                        <div style="margin-top: 10px;">
+                            <div style="font-size: 14px;">Anomaly score: {anomaly_score:.4f}</div>
+                            <div style="font-size: 14px;">Time: {datetime.fromtimestamp(anomaly_details.get('time', time.time())).strftime('%H:%M:%S')}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Potential causes and recommended actions
+                    st.markdown("#### Potential Causes")
+                    causes = [
+                        "Unusual process activity or resource consumption",
+                        "Background system operations",
+                        "Malware or unwanted applications",
+                        "System service issues"
+                    ]
+                    
+                    for cause in causes:
+                        st.markdown(f"- {cause}")
+                    
+                    st.markdown("#### Recommended Actions")
+                    actions = [
+                        "Check the Process Manager for resource-intensive processes",
+                        "Run a system scan for malware",
+                        "Review recently installed applications",
+                        "Monitor system for recurring patterns"
+                    ]
+                    
+                    for action in actions:
+                        st.markdown(f"- {action}")
                 
                 # Show anomaly history if available
                 if hasattr(st.session_state, 'anomaly_history') and st.session_state.anomaly_history:
-                    try:
-                        st.markdown("#### Recent Anomaly History")
-                        
-                        # Create a DataFrame for the anomaly history
-                        history_data = []
-                        for anomaly in st.session_state.anomaly_history:
-                            history_data.append({
-                                "Time": datetime.fromtimestamp(anomaly.get('time', 0)).strftime('%H:%M:%S'),
-                                "CPU %": f"{anomaly.get('cpu', 0):.1f}%",
-                                "Memory %": f"{anomaly.get('memory', 0):.1f}%",
-                                "Score": f"{anomaly.get('score', 0):.4f}"
-                            })
-                        
-                        # Display as a table
-                        if history_data:
-                            st.table(pd.DataFrame(history_data))
-                        else:
-                            st.info("No anomaly history available yet.")
-                    except Exception as e:
-                        # Log but continue if history can't be shown
-                        logger.error(f"Error showing anomaly history: {str(e)}")
-                        st.error("Could not display anomaly history.")
+                    st.markdown("#### Recent Anomaly History")
+                    
+                    # Create a DataFrame for the anomaly history
+                    history_data = []
+                    for anomaly in st.session_state.anomaly_history:
+                        history_data.append({
+                            "Time": datetime.fromtimestamp(anomaly.get('time', 0)).strftime('%H:%M:%S'),
+                            "CPU %": f"{anomaly.get('cpu', 0):.1f}%",
+                            "Memory %": f"{anomaly.get('memory', 0):.1f}%",
+                            "Score": f"{anomaly.get('score', 0):.4f}"
+                        })
+                    
+                    # Display as a table
+                    st.table(pd.DataFrame(history_data))
     except Exception as e:
         logger.error(f"Error rendering performance graphs: {str(e)}")
         st.error(f"Error rendering graphs: {str(e)}")
-        # Don't completely fail - show a fallback message
-        st.info("Performance graphs could not be rendered. The application will try again on the next refresh.")
 
 def performance_graphs():
     """

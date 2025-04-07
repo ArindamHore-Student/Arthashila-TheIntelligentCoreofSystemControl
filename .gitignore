@@ -202,3 +202,4 @@ Desktop.ini
 /data/*.csv
 /logs/
 /temp/
+.venv/

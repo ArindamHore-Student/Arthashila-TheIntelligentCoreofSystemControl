@@ -576,11 +576,33 @@ def process_manager():
                     
                     # Create a line chart showing optimization impact
                     impact_chart = go.Figure()
-                    impact_chart.add_trace(go.Scatter(x=timestamps, y=cpu_before, name="Before Optimization"))
-                    impact_chart.add_trace(go.Scatter(x=timestamps, y=cpu_after, name="After Optimization"))
-                    impact_chart.update_layout(title="Optimization Impact on CPU Usage")
                     
-                    st.plotly_chart(impact_chart)
+                    # Only add visualization if there is valid data
+                    if any(timestamps) and any(cpu_before) and any(cpu_after):
+                        impact_chart.add_trace(go.Scatter(x=timestamps, y=cpu_before, name="Before Optimization"))
+                        impact_chart.add_trace(go.Scatter(x=timestamps, y=cpu_after, name="After Optimization"))
+                        impact_chart.update_layout(
+                            title="Optimization Impact on CPU Usage",
+                            xaxis_title="Time",
+                            yaxis_title="CPU Usage (%)",
+                            paper_bgcolor="#0e1117",
+                            plot_bgcolor="#1a1f2c",
+                            font=dict(color="white"),
+                            xaxis=dict(gridcolor="#2d3747"),
+                            yaxis=dict(gridcolor="#2d3747"),
+                            margin=dict(l=20, r=20, t=50, b=20),
+                            legend=dict(
+                                orientation="h",
+                                yanchor="bottom",
+                                y=1.02,
+                                xanchor="right",
+                                x=1
+                            )
+                        )
+                        
+                        st.plotly_chart(impact_chart, use_container_width=True)
+                    else:
+                        st.info("Not enough data to visualize optimization impact yet.")
         
         with insights_tab:
             st.markdown("#### System Performance Insights")
@@ -698,12 +720,58 @@ def process_manager():
             
             # Add optimization indicator column
             if len(processes) > 0:
+                # Add status indicators with HTML styling
                 df['Status'] = df.apply(lambda row: 
-                    "⚠️ High" if row['cpu_percent'] > optimization_threshold else 
-                    "✅ Good" if row['cpu_percent'] > 0 else "⏱️ Idle", axis=1)
-            
-            # Display the table
-            st.dataframe(df[['pid', 'name', 'cpu_percent', 'memory_percent', 'status', 'Status']])
+                    f"<span style='color: #ff4b4b; font-weight: bold;'>⚠️ High</span>" if row['cpu_percent'] > optimization_threshold else 
+                    f"<span style='color: #0cce6b; font-weight: bold;'>✅ Good</span>" if row['cpu_percent'] > 0 else 
+                    f"<span style='color: #4f8bf9; font-weight: bold;'>⏱️ Idle</span>", axis=1)
+                
+                # Format CPU and memory values for better readability
+                df['cpu_percent'] = df['cpu_percent'].apply(lambda x: f"{x:.1f}%")
+                df['memory_percent'] = df['memory_percent'].apply(lambda x: f"{x:.1f}%")
+                
+                # Set custom column names
+                df = df.rename(columns={
+                    'pid': 'PID',
+                    'name': 'Process Name',
+                    'cpu_percent': 'CPU Usage',
+                    'memory_percent': 'Memory Usage',
+                    'status': 'State'
+                })
+                
+                # Select and order columns for display
+                display_df = df[['PID', 'Process Name', 'CPU Usage', 'Memory Usage', 'State', 'Status']]
+                
+                # Apply custom styling to the dataframe
+                st.markdown("""
+                <style>
+                .dataframe {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-family: 'Arial', sans-serif;
+                }
+                .dataframe th {
+                    background-color: #1a1f2c;
+                    color: white;
+                    font-weight: bold;
+                    padding: 10px;
+                    text-align: left;
+                    border-bottom: 2px solid #4f8bf9;
+                }
+                .dataframe td {
+                    padding: 8px;
+                    border-bottom: 1px solid #2d3747;
+                }
+                .dataframe tr:hover {
+                    background-color: rgba(79, 139, 249, 0.1);
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # Display the styled table
+                st.write(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            else:
+                st.info("No processes found or unable to retrieve process information.")
             
             # Process selection for optimization or termination
             selected_pid = st.selectbox(
